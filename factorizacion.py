@@ -1,14 +1,14 @@
 # para esta actividad necesitamos la anterior (cuerpos_finitos.py)
-# completa, pero quitando las funciones de factorización en anillo_fp_x
-# y en anillo_fq_x, ya que las implementaremos aquí (no se olviden de
+# completa, pero quitando las funciones de factorizaci√≥n en anillo_fp_x
+# y en anillo_fq_x, ya que las implementaremos aqu√≠ (no se olviden de
 # quitarlas)
 import cuerpos_finitos as cf
 
 # square-free factorization
 # input: fpx --> anillo_fp_x
 # input: f --> polinomio fabricado por fpx (objeto opaco) no nulo
-# output: g = producto de los factores irreducibles mónicos de f, es decir,
-# si f = c * f1^e1 * f2^e2 * ... * fr^er con los fi irreducibles mónicos
+# output: g = producto de los factores irreducibles m√≥nicos de f, es decir,
+# si f = c * f1^e1 * f2^e2 * ... * fr^er con los fi irreducibles m√≥nicos
 # distintos entre si, ei >= 1, c en fp, entonces g = f1 * f2 * ... * fr
 def sqfree_fact_fpx(fpx, f):
     lider = f.coef_lider()
@@ -41,9 +41,9 @@ def sqfree_fact_fpx(fpx, f):
 # distinct-degree factorization
 # input: fpx --> anillo_fp_x
 # input: g --> polinomio de fpx (objeto opaco) que es producto de factores
-# irreducibles mónicos distintos cada uno con multiplicidad uno
+# irreducibles m√≥nicos distintos cada uno con multiplicidad uno
 # output: [h1, h2, ..., hr], donde hi = producto de los factores irreducibles
-# mónicos de h de grado = i, el último hr debe ser no nulo y por supuesto
+# m√≥nicos de h de grado = i, el √∫ltimo hr debe ser no nulo y por supuesto
 # g = h1 * h2 * ... * hr
 def didegr_fact_fpx(fpx, g):
     L = {}
@@ -70,9 +70,9 @@ def didegr_fact_fpx(fpx, g):
 # input: fpx --> anillo_fp_x (supondremos p impar)
 # input: r --> int
 # input: h --> polinomio de fpx (objeto opaco) que es producto de factores
-# irreducibles mónicos distintos de grado r con multiplicidad uno
+# irreducibles m√≥nicos distintos de grado r con multiplicidad uno
 # output: [u1, ..., us], donde h = u1 * u2* ... * us y los ui son irreducibles
-# mónicos de grado = r
+# m√≥nicos de grado = r
 def eqdegr_fact_fpx(fpx, r, h):
     grado_total = fpx.grado(h)
     if grado_total < r:
@@ -82,7 +82,7 @@ def eqdegr_fact_fpx(fpx, r, h):
         return [h]
     H = [h]
     H_final = []
-    while H:
+    while len(H_final) != num_factores and H:
         H_nuevo = []
         for h_actual in H:
             grado_max_alpha = fpx.grado(h_actual) - 1
@@ -105,13 +105,11 @@ def eqdegr_fact_fpx(fpx, r, h):
                 else:
                     H_nuevo.append(d_complemento)
         H = H_nuevo
-        if len(H_final) == num_factores:
-            break
     return H_final
-# multiplicidad de factor irreducible mónico
+# multiplicidad de factor irreducible m√≥nico
 # input: fpx --> anillo_fp_x
 # input: f --> polinomio de fpx (objeto opaco) no nulo
-# input: u --> polinomio irreducible mónico (objeto opaco) de grado >= 1
+# input: u --> polinomio irreducible m√≥nico (objeto opaco) de grado >= 1
 # output: multiplicidad de u como factor de f, es decir, el entero e >= 0
 # mas grande tal que u^e | f
 def multiplicidad_fpx(fpx, f, u):
@@ -125,14 +123,14 @@ def multiplicidad_fpx(fpx, f, u):
         else:
             break
     return e
-# factorización de Cantor-Zassenhaus
+# factorizaci√≥n de Cantor-Zassenhaus
 # input: fpx --> anillo_fp_x (supondremos p impar)
 # input: f --> polinomio de fpx (objeto opaco)
 # output: [(f1,e1), ..., (fr,er)] donde f = c * f1^e1 * ... * fr^er es la
-# factorización completa de f en irreducibles mónicos fi con multiplicidad
+# factorizaci√≥n completa de f en irreducibles m√≥nicos fi con multiplicidad
 # ei >= 1 y los fi son distintos entre si y por supuesto c es el coeficiente
 # principal de f
-def fact_fpx(fpx, f):                     # mantener esta implementación
+def fact_fpx(fpx, f):                     # mantener esta implementaci√≥n
     g = sqfree_fact_fpx(fpx, f)
     h = didegr_fact_fpx(fpx, g)
     irreducibles = []
@@ -145,15 +143,15 @@ def fact_fpx(fpx, f):                     # mantener esta implementación
         factorizacion += [(u,e)]
     return factorizacion
 
-# esta linea es para añadir la función de factorización de Cantor-Zassenhaus
-# como un método de la clase anillo_fp_x
+# esta linea es para a√±adir la funci√≥n de factorizaci√≥n de Cantor-Zassenhaus
+# como un m√©todo de la clase anillo_fp_x
 cf.anillo_fp_x.factorizar = fact_fpx
 
 # square-free factorization
 # input: fqx --> anillo_fq_x
 # input: f --> polinomio fabricado por fqx (objeto opaco) no nulo
-# output: g = producto de los factores irreducibles mónicos de f, es decir,
-# si f = c * f1^e1 * f2^e2 * ... * fr^er con los fi irreducibles mónicos
+# output: g = producto de los factores irreducibles m√≥nicos de f, es decir,
+# si f = c * f1^e1 * f2^e2 * ... * fr^er con los fi irreducibles m√≥nicos
 # distintos entre si, ei >= 1, c en fq, entonces g = f1 * f2 * ... * fr
 def sqfree_fact_fqx(fqx, f):
     lider = f.coef_lider()
@@ -189,9 +187,9 @@ def sqfree_fact_fqx(fqx, f):
 # distinct-degree factorization
 # input: fqx --> anillo_fq_x
 # input: g --> polinomio de fqx (objeto opaco) que es producto de factores
-# irreducibles mónicos distintos cada uno con multiplicidad uno
+# irreducibles m√≥nicos distintos cada uno con multiplicidad uno
 # output: [h1, h2, ..., hr], donde hi = producto de los factores irreducibles
-# mónicos de h de grado = i, el último hr debe ser no nulo y por supuesto
+# m√≥nicos de h de grado = i, el √∫ltimo hr debe ser no nulo y por supuesto
 # g = h1 * h2 * ... * hr
 def didegr_fact_fqx(fqx, g):
     L = {}
@@ -219,9 +217,9 @@ def didegr_fact_fqx(fqx, g):
 # input: fqx --> anillo_fq_x (supondremos q impar)
 # input: r --> int
 # input: h --> polinomio de fqx (objeto opaco) que es producto de factores
-# irreducibles mónicos distintos de grado r con multiplicidad uno
+# irreducibles m√≥nicos distintos de grado r con multiplicidad uno
 # output: [u1, ..., us], donde h = u1 * u2* ... * us y los ui son irreducibles
-# mónicos de grado = r
+# m√≥nicos de grado = r
 def eqdegr_fact_fqx(fqx, r, h):
     grado_total = fqx.grado(h)
     if grado_total < r:
@@ -231,7 +229,7 @@ def eqdegr_fact_fqx(fqx, r, h):
         return [h]
     H = [h]
     H_final = []
-    while H:
+    while len(H_final) != num_factores and H:
         H_nuevo = []
         for h_actual in H:
             grado_max_alpha = fqx.grado(h_actual) - 1
@@ -254,14 +252,12 @@ def eqdegr_fact_fqx(fqx, r, h):
                 else:
                     H_nuevo.append(d_complemento)
         H = H_nuevo
-        if len(H_final) == num_factores:
-            break
     return H_final
 
-# multiplicidad de factor irreducible mónico
+# multiplicidad de factor irreducible m√≥nico
 # input: fqx --> anillo_fq_x
 # input: f --> polinomio de fqx (objeto opaco) no nulo
-# input: u --> polinomio irreducible mónico (objeto opaco) de grado >= 1
+# input: u --> polinomio irreducible m√≥nico (objeto opaco) de grado >= 1
 # output: multiplicidad de u como factor de f, es decir, el entero e >= 0
 # mas grande tal que u^e | f
 def multiplicidad_fqx(fqx, f, u):
@@ -276,14 +272,14 @@ def multiplicidad_fqx(fqx, f, u):
             break
     return e
 
-# factorización de Cantor-Zassenhaus
+# factorizaci√≥n de Cantor-Zassenhaus
 # input: fqx --> anillo_fq_x (supondremos q impar)
 # input: f --> polinomio de fqx (objeto opaco)
 # output: [(f1,e1), ..., (fr,er)] donde f = c * f1^e1 * ... * fr^er es la
-# factorización completa de f en irreducibles mónicos fi con multiplicidad
+# factorizaci√≥n completa de f en irreducibles m√≥nicos fi con multiplicidad
 # ei >= 1 y los fi son distintos entre si y por supuesto c es el coeficiente
 # principal de f
-def fact_fqx(fqx, f):                     # mantener esta implementación
+def fact_fqx(fqx, f):                     # mantener esta implementaci√≥n
     g = sqfree_fact_fqx(fqx, f)
     h = didegr_fact_fqx(fqx, g)
     irreducibles = []
@@ -296,6 +292,6 @@ def fact_fqx(fqx, f):                     # mantener esta implementación
         factorizacion += [(u,e)]
     return factorizacion
 
-# esta linea es para añadir la función de factorización de Cantor-Zassenhaus
-# como un método de la clase anillo_fq_x
+# esta linea es para a√±adir la funci√≥n de factorizaci√≥n de Cantor-Zassenhaus
+# como un m√©todo de la clase anillo_fq_x
 cf.anillo_fq_x.factorizar = fact_fqx
