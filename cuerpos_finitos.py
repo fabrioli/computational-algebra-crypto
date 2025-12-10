@@ -107,34 +107,44 @@ class cuerpo_fp:
         return self.elem_de_int(random.randint(0, self.p - 1))
 
     def tabla_suma(self):
-            print(f"Tabla de suma en F{self.p}:")
-            print("     ", end="")
+        matriz = []
+        print(f"Tabla de suma en F{self.p}:")
+        print("     ", end="")
+        for j in range(self.p):
+            print(f"{j:4}", end="")
+        print("\n" + "-" * (6 + 4 * self.p))
+        for i in range(self.p):
+            fila = []
+            print(f"{i:2} |", end="")
             for j in range(self.p):
-                print(f"{j:4}", end="")
-            print("\n" + "-" * (6 + 4 * self.p))
-            for i in range(self.p):
-                print(f"{i:2} |", end="")
-                for j in range(self.p):
-                    a = self.elem_de_int(i)
-                    b = self.elem_de_int(j)
-                    resultado = self.suma(a, b)
-                    print(f"{int(resultado):4}", end="")
-                print()
+                a = self.elem_de_int(i)
+                b = self.elem_de_int(j)
+                resultado = self.suma(a, b)
+                fila.append(int(resultado))
+                print(f"{int(resultado):4}", end="")
+            matriz.append(fila)
+            print()
+        return matriz
 
-    def tabla_multiplicacion(self):
+    def tabla_mult(self):
+        matriz = []
         print(f"Tabla de multiplicación en F{self.p}:")
         print("     ", end="")
         for j in range(self.p):
             print(f"{j:4}", end="")
         print("\n" + "-" * (6 + 4 * self.p))
         for i in range(self.p):
+            fila = []
             print(f"{i:2} |", end="")
             for j in range(self.p):
                 a = self.elem_de_int(i)
                 b = self.elem_de_int(j)
                 resultado = self.mult(a, b)
+                fila.append(int(resultado))
                 print(f"{int(resultado):4}", end="")
             print()
+            matriz.append(fila)
+        return matriz
 
     def tabla_inv_adit(self):
             inversos = []
@@ -142,7 +152,7 @@ class cuerpo_fp:
             for i in range(self.p):
                 a = self.elem_de_int(i)
                 inv = self.inv_adit(a)
-                inversos.append(inv)
+                inversos.append(int(inv))
                 print(f"{i} -> {int(inv)}")
             return inversos
 
@@ -155,7 +165,7 @@ class cuerpo_fp:
                 a = self.elem_de_int(i)
                 try:
                     inv = self.inv_mult(a)
-                    inversos.append(inv)
+                    inversos.append(int(inv))
                     print(f"{i} -> {int(inv)}")
                 except ZeroDivisionError:
                     inversos.append(None) 
@@ -176,7 +186,7 @@ class cuerpo_fp:
             print(f"{i:2} |", end="")
             for j in range(self.p):
                 valor = self.suma(self.mult(a, self.elem_de_int(i)), self.elem_de_int(j))
-                fila.append(valor)
+                fila.append(int(valor))
                 print(f"{self.conv_a_int(valor):4}", end="")
             cuadrado.append(fila)
             print()
@@ -685,7 +695,7 @@ class anillo_fp_x:
             return [h]
         H = [h]
         H_final = []
-        while H:
+        while len(H_final) != num_factores and H:
             H_nuevo = []
             for h_actual in H:
                 grado_max_alpha = self.grado(h_actual) - 1
@@ -708,8 +718,6 @@ class anillo_fp_x:
                     else:
                         H_nuevo.append(d_complemento)
             H = H_nuevo
-            if len(H_final) == num_factores:
-                break
         return H_final
     
     def multiplicidad_fpx(self, f, u):
@@ -724,7 +732,7 @@ class anillo_fp_x:
                 break
         return e
     
-    def fact_fpx(self, f):                     
+    def factorizar(self, f):                     
         g = self.sqfree_fact_fpx(f)
         h = self.didegr_fact_fpx(g)
         irreducibles = []
@@ -890,34 +898,45 @@ class cuerpo_fq:
         return ElementoFq(self.fp, Polinomio(self.fp, Cn, self.modulo.var), self.modulo, self.var)
     
     def tabla_suma(self):          # matriz de qxq correspondiente a la suma (con la notación int)
+        matriz = []
         print(f"Tabla de suma en Fq (q={self.q}):")
         print("     ", end="")
         for j in range(self.q):
             print(f"{j:4}", end="")
         print("\n" + "-" * (6 + 4 * self.q))
         for i in range(self.q):
+            fila = []
             print(f"{i:2} |", end="")
             a = self.elem_de_int(i)
             for j in range(self.q):
                 b = self.elem_de_int(j)
                 resultado = self.suma(a, b)
+                fila.append(self.conv_a_int(resultado))
                 print(f"{self.conv_a_int(resultado):4}", end="")
             print()
+            matriz.append(fila)
+        return matriz
 
     def tabla_mult(self):          # matriz de qxq correspondiente a la mult (con la notación int)
+        matriz = []    
         print(f"Tabla de multiplicación en Fq (q={self.q}):")
         print("     ", end="")
+        
         for j in range(self.q):
             print(f"{j:4}", end="")
         print("\n" + "-" * (6 + 4 * self.q))
         for i in range(self.q):
+            fila = []
             print(f"{i:2} |", end="") 
             a = self.elem_de_int(i)
             for j in range(self.q):
                 b = self.elem_de_int(j)
                 resultado = self.mult(a, b)
+                fila.append(self.conv_a_int(resultado))
                 print(f"{self.conv_a_int(resultado):4}", end="")
             print()
+            matriz.append(fila)
+        return fila
 
     def tabla_inv_adit(self):
         inversos = []
@@ -1282,6 +1301,7 @@ class PolinomioFq:
             nuevos_coef[i-1] = self.coef[i] * self.fq.elem_de_int(i)
             
         return PolinomioFq(self.fq, nuevos_coef, self.var)
+
 class anillo_fq_x:
     
     def __init__(self, fq, var = 'x'):
@@ -1517,7 +1537,7 @@ class anillo_fq_x:
             return [h]
         H = [h]
         H_final = []
-        while H:
+        while len(H_final) != num_factores and H:
             H_nuevo = []
             for h_actual in H:
                 grado_max_alpha = self.grado(h_actual) - 1
@@ -1540,8 +1560,6 @@ class anillo_fq_x:
                     else:
                         H_nuevo.append(d_complemento)
             H = H_nuevo
-            if len(H_final) == num_factores:
-                break
         return H_final
     
     def multiplicidad_fqx(self, f, u):
@@ -1556,7 +1574,7 @@ class anillo_fq_x:
                 break
         return e
     
-    def fact_fqx(self, f):                   
+    def factorizar(self, f):                   
         g = self.sqfree_fact_fqx(f)
         h = self.didegr_fact_fqx(g)
         irreducibles = []
