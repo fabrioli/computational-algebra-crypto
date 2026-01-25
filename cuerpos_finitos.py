@@ -748,13 +748,25 @@ class anillo_fp_x:
 class ElementoFq:
     def __init__(self, fp, f, g, var = 'a'):
         self.fp = fp
-        if f.var != g.var:
+        f1 = ElementoFq._init_elem(fp, f, f.var)
+        if f1.var != g.var:
             raise ValueError('Los polinomios han de tener la misma variable.')
         self.var = var
         self.p = fp.p
         self.q = fp.p**g.deg
-        self.repre = anillo_fp_x(fp, g.var).mod(f, g)
+        self.repre = anillo_fp_x(fp, g.var).mod(f1, g)
         self.modulo = g
+        @classmethod
+        
+    def _init_elem(cls, fp, f, var):
+        if isinstance(f, int):
+            return Polinomio.desde_entero(fp, f, var) 
+        elif isinstance(f, str):
+            return Polinomio.desde_str(fp, f, var)
+        elif isinstance(f, (tuple, list)):
+            return Polinomio.desde_tuple(fp, f, var)
+        elif isinstance(f, Polinomio):
+            return f
         
     def mismo_Fq(self, other):
         if self.q != other.q or self.modulo.__ne__(other.modulo) :
@@ -820,11 +832,23 @@ class ElementoFq:
     
 class cuerpo_fq:
     def __init__(self, fp, g, var='a'): # construye el cuerpo Fp[var]/<g(var)>
+        self.modulo = cuerpo_fq._init_pol(fp, g) 
         self.caracteristica = fp.p
         self.var = var
         self.fp = fp
-        self.q = fp.p**g.deg
-        self.modulo = g
+        self.q = fp.p**self.modulo.deg
+        
+    @classmethod
+    def _init_pol(cls, fp, g):
+        if isinstance(g,(tuple,list)): 
+            return Polinomio.desde_tuple(fp, tuple(g))
+        if isinstance(g, Polinomio):
+            return g
+        if isinstance(g, int):
+            return Polinomio.desde_entero(fp, g)
+        if isinstance(g, str):
+            return Polinomio.desde_str(fp, g)
+
 
     def cero(self):                # 0
         return ElementoFq(self.fp, Polinomio.desde_entero(self.fp, 0, self.modulo.var), self.modulo, self.var)
@@ -1588,3 +1612,4 @@ class anillo_fq_x:
         return factorizacion
 
     
+
