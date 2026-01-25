@@ -1,0 +1,491 @@
+# para esta actividad necesitamos la primera (cuerpos_finitos.py) completa
+import cuerpos_finitos as cf
+
+# input: fpx -> anillo_fp_x
+# input: f -> polinomio (objeto opaco creado por fpx)
+# input: g -> polinomio (objeto opaco creado por fpx)
+# output: f*g calculado usando el método de Karatsuba
+def fp_x_mult_karatsuba(fpx, f, g):
+    n = min(f.deg, g.deg) 
+    if n <= 20: return fpx.mult(f,g)
+    N = max(f.deg,g.deg)+1
+    k = N//2
+    f_u = cf.Polinomio(fpx.fp, f.coef[k:], f.var)
+    f_l = cf.Polinomio(fpx.fp, f.coef[:k], f.var)
+    g_u = cf.Polinomio(fpx.fp, g.coef[k:], g.var)
+    g_l = cf.Polinomio(fpx.fp, g.coef[:k], g.var)
+    
+    h_0 = fp_x_mult_karatsuba(fpx, f_l, g_l)
+    h_1 = fp_x_mult_karatsuba(fpx, f_u, g_u)
+    h_0_1 = fp_x_mult_karatsuba(fpx, f_l + f_u, g_l + g_u)
+    
+    term_mid = fpx.suma(h_0_1, fpx.inv_adit(h_1))
+    term_mid = fpx.suma(term_mid, fpx.inv_adit(h_0))
+    
+    cero_fp = fpx.fp.cero()
+    
+    h_1_desp = cf.Polinomio(fpx.fp, [cero_fp]*(2*k) + h_1.coef, f.var)
+    term_mid_desp = cf.Polinomio(fpx.fp, [cero_fp]*k + term_mid.coef, f.var)
+    
+    res_parcial = fpx.suma(h_1_desp, term_mid_desp)
+    return fpx.suma(res_parcial, h_0)
+    
+
+# añadimos esta función a la clase (sin sobreescribir la que ya teníamos)
+cf.anillo_fp_x.mult_fast = fp_x_mult_karatsuba
+
+# input: fp -> cuerpo_fp
+# input: n >= 1 (int)
+# input: a -> tupla de longitud n de elementos de fp (primera columna de una
+#    matriz de Toeplitz inferior T de nxn)
+# input: b -> tupla de longitud n de elementos de fp (vector)
+# output: T*b -> tupla de longitud n de elementos de fp (vector)
+# se debe utilizar fp_x_mult_karatsuba internamente
+def fp_toep_inf_vec(fp, n, a, b):
+    fpx = cf.anillo_fp_x(fp)
+    prod = fp_x_mult_karatsuba(fpx, fpx.elem_de_tuple(a), fpx.elem_de_tuple(b))
+    res = []
+    for i in range(n):
+        if i <= prod.deg:
+            res.append(prod.coef[i])
+        else:
+            res.append(fp.cero())
+    return tuple(res)
+# input: fp -> cuerpo_fp
+# input: n >= 1 (int)
+# input: a -> tupla de longitud n de elementos de fp (primera fila de una
+#    matriz de Toeplitz superior T de nxn)
+# input: b -> tupla de longitud n de elementos de fp (vector)
+# output: T*b -> tupla de longitud n de elementos de fp (vector)
+# se debe utilizar fp_x_mult_karatsuba internamente
+def fp_toep_sup_vec(fp, n, a, b):
+    fpx = cf.anillo_fp_x(fp)
+    prod = fp_x_mult_karatsuba(fpx, fpx.elem_de_tuple(a), fpx.elem_de_tuple(b[::-1]))
+    res = []
+    for i in range(n):
+        if i <= prod.deg:
+            res.append(prod.coef[i])
+        else:
+            res.append(fp.cero())
+    return tuple(res[::-1])
+# input: fp -> cuerpo_fp
+# input: n >= 1 (int)
+# input: a -> tupla de longitud 2*n-1 de elementos de fp (primera fila de una
+#    matriz de Toeplitz completa T de nxn seguida de la primera columna
+#    excepto el elemento de la esquina)
+# input: b -> tupla de longitud n de elementos de fp (vector)
+# output: T*b -> tupla de longitud n de elementos de fp (vector)
+# se debe utilizar fp_x_mult_karatsuba internamente
+def fp_toep_vec(fp, n, a, b):
+    T_sup = fp_toep_sup_vec(fp, n, a[:n], b)
+    diag = a[0]
+    T_inf = fp_toep_inf_vec(fp, n, (diag,)+a[n:], b)
+    
+    res = []
+    for i in range(n):
+        term = fp.suma(T_inf[i], T_sup[i])
+        resta = fp.mult(diag, b[i])
+        final = fp.suma(term, fp.inv_adit(resta))
+        res.append(final)
+    return tuple(res)
+
+# input: fp -> cuerpo_fp
+# input: n >= 1 (int)
+# input: a -> tupla de longitud n de elementos de fp (primera columna de una
+#    matriz de Toeplitz inferior T de nxn)... suponemos a[0] != 0
+# output: primera columna de T^(-1) -> tupla de longitud n de elementos de
+#    fp (vector)
+# utilizar un método recursivo que "divida el problema a la mitad"
+# recordar que T^(-1) es también una matriz de Toeplitz inferior
+def fp_toep_inf_inv(fp, n, a):
+    if n == 1:
+        try:
+            return (fp.inv_mult(a[0]),)
+        except ZeroDivisionError:
+             raise ValueError("El elemento diagonal es 0, la matriz no es invertible.")
+    k = (n+1)//2
+    m = n-k
+    
+    u = fp_toep_inf_inv(fp, k, a[:k])
+    fpx = cf.anillo_fp_x(fp)
+    
+    pol_a = fpx.elem_de_tuple(a) 
+    pol_u = fpx.elem_de_tuple(u)
+    
+    prod_1 = fp_x_mult_karatsuba(fpx, pol_a, pol_u)
+    
+    z = []
+    for i in range(k, n):
+        if i <= prod_1.deg:
+            z.append(prod_1.coef[i])
+        else:
+            z.append(fp.cero())
+            
+    pol_z = fpx.elem_de_tuple(tuple(z))
+    pol_d_inv = fpx.elem_de_tuple(u[:m])
+    prod_2 = fp_x_mult_karatsuba(fpx, pol_d_inv, pol_z)
+    
+    y_vals = []
+    for i in range(m):
+        val = fp.cero()
+        if i <= prod_2.deg:
+            val = prod_2.coef[i]
+        y_vals.append(fp.inv_adit(val))
+        
+    return u + tuple(y_vals)
+# input: fp -> cuerpo_fp
+# input: n >= 1 (int)
+# input: a -> tupla de longitud n de elementos de fp (primera fila de una
+#    matriz de Toeplitz superior T de nxn)... suponemos a[0] != 0
+# output: primera fila de T^(-1) -> tupla de longitud n de elementos de
+#    fp (vector)
+# utilizar un método recursivo que "divida el problema a la mitad"
+# recordar que T^(-1) es también una matriz de Toeplitz superior
+def fp_toep_sup_inv(fp, n, a):
+    return fp_toep_inf_inv(fp, n, a)
+
+# input: fpx -> anillo_fp_x
+# input: f -> polinomio (objeto opaco creado por fpx)
+# input: g -> polinomio no nulo (objeto opaco creado por fpx)
+# output: q -> cociente
+# output: r -> resto
+# se cumple que f = g*q+r, r=0 o deg(r)<deg(g)
+# reformular el problema en términos de matrices de Toeplitz y luego usar
+# las funciones de arriba para obtener q y r
+def fp_x_divmod(fpx, f, g):
+    if g.es_cero():
+        raise ZeroDivisionError("División por polinomio cero.")
+    
+    n = fpx.grado(f)
+    m = fpx.grado(g)
+    if n < m:
+        return fpx.cero(), f
+    k = n - m + 1
+    fp = fpx.fp
+    f_rev_coefs = []
+    for i in range(k):
+        idx = n - i
+        if idx >= 0: 
+            f_rev_coefs.append(f.coef[idx])
+        else:
+            f_rev_coefs.append(fp.cero())
+    f_rev_coefs = tuple(f_rev_coefs)
+    g_rev_coefs = []
+    for i in range(k):
+        idx = m - i
+        if idx >= 0 and idx < len(g.coef):
+            g_rev_coefs.append(g.coef[idx])
+        else:
+            g_rev_coefs.append(fp.cero())
+    g_rev_coefs = tuple(g_rev_coefs)
+    inv_g_rev = fp_toep_inf_inv(fp, k, g_rev_coefs)
+    q_rev_coefs = fp_toep_inf_vec(fp, k, inv_g_rev, f_rev_coefs)
+    q_coefs = list(q_rev_coefs[::-1])
+    q = cf.Polinomio(fp, q_coefs, f.var)
+    g_q = fp_x_mult_karatsuba(fpx, g, q)
+    r = fpx.suma(f, fpx.inv_adit(g_q))
+    
+    return q, r
+
+
+# añadimos esta función a la clase (sin sobreescribir la que ya teníamos)
+cf.anillo_fp_x.divmod_fast = fp_x_divmod
+
+# input: fp -> cuerpo_fp
+# input: g -> elemento del grupo multiplicativo fp* de orden n (objeto opaco)
+# input: k >= 0 tal que n = 2**k divide a p-1
+# input: a -> tupla de longitud n de elementos de fp
+# output: DFT_{n,g}(a) -> tupla de longitud n de elementos de fp
+# utilizar el algoritmo de Cooley-Tuckey
+def fp_fft(fp, g, k, a):
+    n = len(a)
+    if n == 1:
+        return a
+    a_par = a[0::2]
+    a_impar = a[1::2]
+    
+    g2 = fp.mult(g, g)
+    
+    y_par = fp_fft(fp, g2, k-1, a_par)
+    y_impar  = fp_fft(fp, g2, k-1, a_impar)
+    
+    res = [None] * n
+    w = fp.uno()
+    n_med = n // 2
+    
+    for j in range(n_med):
+        val_par = y_par[j]
+        val_impar = y_impar[j]
+        term = fp.mult(w, val_impar)
+        res[j] = fp.suma(val_par, term)
+        res[j + n_med] = fp.suma(val_par, fp.inv_adit(term))
+        w = fp.mult(w, g)
+        
+    return tuple(res)
+
+
+# input: fp -> cuerpo_fp
+# input: g -> elemento del grupo multiplicativo fp* de orden n (objeto opaco)
+# input: k >= 0 tal que n = 2**k divide a p-1
+# input: a -> tupla de longitud n de elementos de fp
+# output: IDFT_{n,g}(a) -> tupla de longitud n de elementos de fp
+# recordar que IDFT_{n,g} = n^(-1) * DFT_{n,g^(-1)}
+def fp_ifft(fp, g, k, a):
+    n = len(a)
+
+    g_inv = fp.inv_mult(g)
+    
+    dft_inv = fp_fft(fp, g_inv, k, a)
+
+    n_elem = fp.elem_de_int(n)
+    inv_n = fp.inv_mult(n_elem)
+
+    res = []
+    for val in dft_inv:
+        res.append(fp.mult(val, inv_n))
+        
+    return tuple(res)
+
+# input: fqx -> anillo_fq_x
+# input: f -> polinomio (objeto opaco creado por fqx)
+# input: g -> polinomio (objeto opaco creado por fqx)
+# output: f*g calculado usando el método de Karatsuba
+def fq_x_mult_karatsuba(fqx, f, g):
+    n = min(f.deg, g.deg) 
+    if n <= 20: 
+        return fqx.mult(f, g)
+    N = max(f.deg, g.deg) + 1
+    k = N // 2
+    
+    f_u = cf.PolinomioFq(fqx.fq, f.coef[k:], f.var)
+    f_l = cf.PolinomioFq(fqx.fq, f.coef[:k], f.var)
+    g_u = cf.PolinomioFq(fqx.fq, g.coef[k:], g.var)
+    g_l = cf.PolinomioFq(fqx.fq, g.coef[:k], g.var)
+    
+    h_0 = fq_x_mult_karatsuba(fqx, f_l, g_l)
+    h_1 = fq_x_mult_karatsuba(fqx, f_u, g_u)
+    h_0_1 = fq_x_mult_karatsuba(fqx, f_l + f_u, g_l + g_u)
+    
+    term_mid = fqx.suma(h_0_1, fqx.inv_adit(h_1))
+    term_mid = fqx.suma(term_mid, fqx.inv_adit(h_0))
+    
+    cero_fq = fqx.fq.cero()
+    
+    h_1_desp = cf.PolinomioFq(fqx.fq, [cero_fq]*(2*k) + h_1.coef, f.var)
+    term_mid_desp = cf.PolinomioFq(fqx.fq, [cero_fq]*k + term_mid.coef, f.var)
+    
+    res_parcial = fqx.suma(h_1_desp, term_mid_desp)
+    return fqx.suma(res_parcial, h_0)
+
+# añadimos esta función a la clase (sin sobreescribir la que ya teníamos)
+cf.anillo_fq_x.mult_fast = fq_x_mult_karatsuba
+
+# input: fq -> cuerpo_fq
+# input: n >= 1 (int)
+# input: a -> tupla de longitud n de elementos de fq (primera columna de una
+#    matriz de Toeplitz inferior T de nxn)
+# input: b -> tupla de longitud n de elementos de fq (vector)
+# output: T*b -> tupla de longitud n de elementos de fq (vector)
+# se debe utilizar fq_x_mult_karatsuba internamente
+def fq_toep_inf_vec(fq, n, a, b):
+    fqx = cf.anillo_fq_x(fq)
+    prod = fq_x_mult_karatsuba(fqx, fqx.elem_de_tuple(a), fqx.elem_de_tuple(b))
+    
+    res = []
+    for i in range(n):
+        if i <= prod.deg:
+            res.append(prod.coef[i])
+        else:
+            res.append(fq.cero())
+            
+    return tuple(res)
+
+# input: fq -> cuerpo_fq
+# input: n >= 1 (int)
+# input: a -> tupla de longitud n de elementos de fq (primera fila de una
+#    matriz de Toeplitz superior T de nxn)
+# input: b -> tupla de longitud n de elementos de fq (vector)
+# output: T*b -> tupla de longitud n de elementos de fq (vector)
+# se debe utilizar fq_x_mult_karatsuba internamente
+def fq_toep_sup_vec(fq, n, a, b):
+    fqx = cf.anillo_fq_x(fq)
+    prod = fq_x_mult_karatsuba(fqx, fqx.elem_de_tuple(a), fqx.elem_de_tuple(b[::-1]))
+    
+    res = []
+    for i in range(n):
+        if i <= prod.deg:
+            res.append(prod.coef[i])
+        else:
+            res.append(fq.cero())
+            
+    return tuple(res[::-1])
+
+# input: fq -> cuerpo_fq
+# input: n >= 1 (int)
+# input: a -> tupla de longitud 2*n-1 de elementos de fq (primera fila de una
+#    matriz de Toeplitz completa T de nxn seguida de la primera columna
+#    excepto el elemento de la esquina)
+# input: b -> tupla de longitud n de elementos de fq (vector)
+# output: T*b -> tupla de longitud n de elementos de fq (vector)
+# se debe utilizar fq_x_mult_karatsuba internamente
+def fq_toep_vec(fq, n, a, b):
+    T_sup = fq_toep_sup_vec(fq, n, a[:n], b)
+    diag = a[0]
+    res = []
+    T_inf = fq_toep_inf_vec(fq, n, (diag,) + a[n:], b)
+    for i in range(n):
+        term = fq.suma(T_inf[i], T_sup[i])
+        resta = fq.mult(diag, b[i])
+        final = fq.suma(term, fq.inv_adit(resta))  
+        res.append(final)
+        
+    return tuple(res)
+
+
+# input: fq -> cuerpo_fq
+# input: n >= 1 (int)
+# input: a -> tupla de longitud n de elementos de fq (primera columna de una
+#    matriz de Toeplitz inferior T de nxn)... suponemos a[0] != 0
+# output: primera columna de T^(-1) -> tupla de longitud n de elementos de
+#    fq (vector)
+# utilizar un método recursivo que "divida el problema a la mitad"
+# recordar que T^(-1) es también una matriz de Toeplitz inferior
+def fq_toep_inf_inv(fq, n, a):
+    if n == 1:
+        try:
+            return (fq.inv_mult(a[0]),) # Coma importante
+        except ZeroDivisionError:
+             raise ValueError("El elemento diagonal es 0.")
+    
+    k = (n + 1) // 2
+    m = n - k
+    u = fq_toep_inf_inv(fq, k, a[:k])
+    fqx = cf.anillo_fq_x(fq)
+    pol_a = fqx.elem_de_tuple(a) 
+    pol_u = fqx.elem_de_tuple(u)
+    prod_1 = fq_x_mult_karatsuba(fqx, pol_a, pol_u)
+    
+    z = []
+    for i in range(k, n):
+        if i <= prod_1.deg:
+            z.append(prod_1.coef[i])
+        else:
+            z.append(fq.cero())
+    pol_z = fqx.elem_de_tuple(tuple(z))
+    pol_d_inv = fqx.elem_de_tuple(u[:m])
+    
+    prod_2 = fq_x_mult_karatsuba(fqx, pol_d_inv, pol_z)
+    
+    y_vals = []
+    for i in range(m):
+        val = fq.cero()
+        if i <= prod_2.deg:
+            val = prod_2.coef[i]
+        y_vals.append(fq.inv_adit(val))
+        
+    return u + tuple(y_vals)
+
+
+# input: fq -> cuerpo_fq
+# input: n >= 1 (int)
+# input: a -> tupla de longitud n de elementos de fq (primera fila de una
+#    matriz de Toeplitz superior T de nxn)... suponemos a[0] != 0
+# output: primera fila de T^(-1) -> tupla de longitud n de elementos de
+#    fq (vector)
+# utilizar un método recursivo que "divida el problema a la mitad"
+# recordar que T^(-1) es también una matriz de Toeplitz superior
+def fq_toep_sup_inv(fq, n, a):
+    return fq_toep_inf_inv(fq, n, a)
+
+# input: fqx -> anillo_fq_x
+# input: f -> polinomio (objeto opaco creado por fqx)
+# input: g -> polinomio no nulo (objeto opaco creado por fqx)
+# output: q -> cociente
+# output: r -> resto
+# se cumple que f = g*q+r, r=0 o deg(r)<deg(g)
+# reformular el problema en términos de matrices de Toeplitz y luego usar
+# las funciones de arriba para obtener q y r
+def fq_x_divmod(fqx, f, g):
+    if g.es_cero():
+        raise ZeroDivisionError("División por polinomio cero.")
+    
+    n = fqx.grado(f)
+    m = fqx.grado(g)
+    if n < m:
+        return fqx.cero(), f
+    k = n - m + 1
+    fq = fqx.fq
+    f_rev_coefs = []
+    for i in range(k):
+        idx = n - i
+        if idx >= 0:
+            f_rev_coefs.append(f.coef[idx])
+        else:
+            f_rev_coefs.append(fq.cero())
+    f_rev_coefs = tuple(f_rev_coefs)
+    g_rev_coefs = []
+    for i in range(k):
+        idx = m - i
+        if idx >= 0 and idx < len(g.coef):
+            g_rev_coefs.append(g.coef[idx])
+        else:
+            g_rev_coefs.append(fq.cero())
+    g_rev_coefs = tuple(g_rev_coefs)
+    inv_g_rev = fq_toep_inf_inv(fq, k, g_rev_coefs)
+    q_rev_coefs = fq_toep_inf_vec(fq, k, inv_g_rev, f_rev_coefs)
+    q_coefs = list(q_rev_coefs[::-1])
+    q = cf.PolinomioFq(fq, q_coefs, f.var)
+    g_q = fq_x_mult_karatsuba(fqx, g, q)
+    r = fqx.suma(f, fqx.inv_adit(g_q))
+    
+    return q, r
+
+# añadimos esta función a la clase (sin sobreescribir la que ya teníamos)
+cf.anillo_fq_x.divmod_fast = fq_x_divmod
+
+# input: fq -> cuerpo_fq
+# input: g -> elemento del grupo multiplicativo fq* de orden n (objeto opaco)
+# input: k >= 0 tal que n = 2**k divide a q-1
+# input: a -> tupla de longitud n de elementos de fq
+# output: DFT_{n,g}(a) -> tupla de longitud n de elementos de fq
+# utilizar el algoritmo de Cooley-Tuckey
+def fq_fft(fq, g, k, a):
+    n = len(a)
+    if n == 1:
+        return a
+    a_par = a[0::2]
+    a_impar = a[1::2]
+    g2 = fq.mult(g, g)
+    y_par = fq_fft(fq, g2, k-1, a_par)
+    y_impar = fq_fft(fq, g2, k-1, a_impar)
+    res = [None] * n
+    w = fq.uno()
+    n_med = n // 2
+    for j in range(n_med):
+        val_par = y_par[j]
+        val_impar = y_impar[j]
+        term = fq.mult(w, val_impar)
+        res[j] = fq.suma(val_par, term)
+        res[j + n_med] = fq.suma(val_par, fq.inv_adit(term))
+        w = fq.mult(w, g)
+        
+    return tuple(res)
+
+# input: fq -> cuerpo_fq
+# input: g -> elemento del grupo multiplicativo fq* de orden n (objeto opaco)
+# input: k >= 0 tal que n = 2**k divide a p-1
+# input: a -> tupla de longitud n de elementos de fq
+# output: IDFT_{n,g}(a) -> tupla de longitud n de elementos de fq
+# recordar que IDFT_{n,g} = n^(-1) * DFT_{n,g^(-1)}
+def fq_ifft(fq, g, k, a):
+    n = len(a)
+    g_inv = fq.inv_mult(g)
+    dft_inv = fq_fft(fq, g_inv, k, a)
+    n_elem = fq.elem_de_int(n)
+    inv_n = fq.inv_mult(n_elem) 
+    res = []
+    for val in dft_inv:
+        res.append(fq.mult(val, inv_n))
+    return tuple(res)
+    pass
+
